@@ -8,8 +8,11 @@
 <body>
 	<script src="Cookie.js"></script>
 		<script>
-			var cookies = Cookies.cookies;
-			Cookies.set("complex","a","1");
+			//var cookies = Cookies.cookies;
+			//cookies.a.b = 1;
+			cookie = Cookies.prototype
+			console.log(cookie.get("simple"));
+			console.log(cookie.get("complex","b"));
 		</script> 
 </body>
 </html>

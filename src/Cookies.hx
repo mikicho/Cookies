@@ -1,7 +1,7 @@
 package;
 
 import haxe.ds.StringMap;
-import js.Browser;
+import haxe.DynamicAccess;
 import js.Cookie;
 
 /**
@@ -9,60 +9,47 @@ import js.Cookie;
  * @author Michael
  */
 @:expose
-class Cookies 
-{	 
-	static var cookies:Dynamic = {};
-	static function main() 
-	{	 
+class Cookies {
+	static var simplePairArr:DynamicAccess<CookieValue>;
+	static var complexPairArr:DynamicAccess<DynamicAccess<CookieValue>>;
+	
+    static function main() {
+		//Set some cookiesw for tests
+		Cookie.set("simple", "sim");
 		Cookie.set("complex", "a=b,b=c");
+		//Defines two Arrays to contain the cookies for convenient access
+		simplePairArr = new DynamicAccess<CookieValue>();
+		complexPairArr = new DynamicAccess<DynamicAccess<CookieValue>>();
+		//Get Cookies
 		var cookiesMap:StringMap<String> = Cookie.all();
+		
 		for (name in cookiesMap.keys()) {
+			//Split each cookie to sub cookies
 			var subValues:Array<String> = cookiesMap.get(name).split(",");
+			//If subValues.length is big from one it's complex cookie otherwise it's simple one
 			if (subValues.length > 1) {
-				Reflect.setField(cookies, name, { } );
+				complexPairArr[name] = new DynamicAccess<CookieValue>(); 
+				//Split the complex cookie for sub cookies and insert the subcookies into their structure
 				for (pair in subValues) {
-					Reflect.setField(Reflect.getProperty(cookies,name),pair.split("=")[0], pair.split("=")[1]);
+					complexPairArr[name][pair.split("=")[0]] = new CookieValue(pair.split("=")[1]);
 				}
 			}else {
-				Reflect.setField(cookies,name, subValues[0]);
-			}	
-		}
-	}
-	
-/*	static function set(name:String, value:String, ?expiry:Int, ?path:String, ?domain:String) {				
-		Cookie.set(name, value, expiry, path, domain);
-	}*/
-	
-	static function set(name:String, subName:String, value:String, ?expiry:Int, ?path:String, ?domain:String) {
-		if (Cookie.exists(name)) {
-			if (Reflect.hasField(Reflect.getProperty(cookies, name), subName)) {				
-				Reflect.setField(Reflect.getProperty(cookies, name), subName, value);
-				Cookie.set(name, cookieToString(name), expiry, path, domain);
-			}else {
-				trace('no have sub cookie named \'$subName\'');	
+				//Insert the simple cookie into their structure
+				simplePairArr[name] = new CookieValue(subValues[0]);
 			}
+		}
+    }
+	/*For getting cookies in JS, it's *not* in separate functions for convenient access:
+	 *  cookie = Cookies.prototype
+	 *  cookie.get("simple")
+	 *  cookie.get("complex","b")
+	 */ 
+	public function get(name:String, ?subName:String):String
+	{
+		if (subName==null) {			
+			return simplePairArr[name].value;
 		}else {
-			trace('no have cookie named \'$name\'');
+			return complexPairArr[name][subName].value;
 		}
-	}
-	
-	static private function cookieToString(name:String):String {
-		var value:String = "";
-		var subCookieObject = Reflect.getProperty(cookies, name);
-		var subCookie:Array<String> = Reflect.fields(subCookieObject);		
-		for (i in 0...(subCookie.length - 1)) {
-			value += subCookie[i] + "=" + Reflect.getProperty(subCookieObject, subCookie[i]) + ",";
-		}
-		var lastcell:Int = subCookie.length - 1;
-		value += subCookie[lastcell] + "=" + Reflect.getProperty(subCookieObject, subCookie[lastcell]);
-		return value;
-	}
-	
-	static function remove(name:String, ?path:String, ?domain:String) {				
-		Cookie.remove(name, path, domain);
-	}
-	
-	static function alert() {				
-		Browser.alert(cookies);
 	}
 }
